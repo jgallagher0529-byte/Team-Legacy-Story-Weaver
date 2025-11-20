@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Team Legacy Story Weaver</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* Custom scrollbar style for the feed */
+        #liveFeed::-webkit-scrollbar {
+            width: 8px;
+        }
+        #liveFeed::-webkit-scrollbar-thumb {
+            background-color: #a5b4fc; /* Indigo-300 */
+            border-radius: 4px;
+        }
+        #liveFeed::-webkit-scrollbar-track {
+            background-color: #f3f4f6; /* Gray-100 */
+        }
+        /* Styles for images in the live feed */
+        .story-image-feed {
+            width: 100%; /* Take full width */
+            height: auto; /* Maintain aspect ratio */
+            max-height: 200px; /* Max height for consistency */
+            object-fit: cover;
+            border-radius: 6px;
+            margin-top: 12px; /* Space from text */
+            margin-bottom: 8px; /* Space from footer */
+            cursor: pointer; /* Indicate it's clickable */
+        }
+        /* Styles for image in preview area */
+        #previewImage {
+            width: 100%; /* Take full width */
+            height: auto; /* Maintain aspect ratio */
+            max-height: 256px; /* Larger max height for preview */
+            object-fit: cover;
+            border-radius: 8px;
+            margin-top: 16px; /* Space from text */
+            cursor: pointer; /* Indicate it's clickable */
+        }
+
+        /* Full Screen Modal Styles */
+        #imageModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            /* Keep display: flex in CSS, and let the 'hidden' class and JS control visibility */
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: pointer;
+        }
+        #modalImage {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+        #modalClose {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="app" class="w-full max-w-4xl bg-white shadow-xl rounded-xl p-6 md:p-10">
+
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-indigo-700">The Team Legacy Story Weaver</h1>
+            <p class="text-lg text-gray-600 mt-2">Turn team achievements into legendary tales of triumph and teamwork!</p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            
+            <!-- 1. Story Input Form -->
+            <section class="p-6 bg-indigo-50 rounded-lg border border-indigo-200">
+                <h2 class="text-2xl font-semibold mb-6 text-indigo-600">Archive a Team Win</h2>
+                
+                <div class="mb-4">
+                    <label for="senderName" class="block text-sm font-medium text-gray-700 mb-1">Your Name (Poster)</label>
+                    <input type="text" id="senderName" placeholder="E.g., Captain Collaboration" class="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+
+                <div class="mb-4">
+                    <label for="project" class="block text-sm font-medium text-gray-700 mb-1">Project/Achievement Name</label>
+                    <input type="text" id="project" placeholder="E.g., The Q4 Feature Launch" class="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                </div>
+
+                <div class="mb-4">
+                    <label for="toneSelector" class="block text-sm font-medium text-gray-700 mb-1">Select Story Tone</label>
+                    <select id="toneSelector" class="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 bg-white">
+                        <option value="fantasy">Epic Fantasy Quest</option>
+                        <option value="sci-fi">Futuristic Sci-Fi Saga</option>
+                        <option value="wild-west">Wild West Frontier Story</option>
+                        <option value="superhero">Superhero Origin Story</option>
+                    </select>
+                </div>
+
+                <div class="mb-6">
+                    <label for="details" class="block text-sm font-medium text-gray-700 mb-1">Describe the challenge and resolution (Be specific about the team's heroics!)</label>
+                    <textarea id="details" rows="4" placeholder="E.g., We had a critical server crash the night before launch, but the engineering team collaborated until dawn to rebuild the infrastructure, saving the project." class="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"></textarea>
+                </div>
+
+                <button id="previewBtn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition duration-200 shadow-md flex items-center justify-center" onclick="previewLegacyStory()">
+                    <span id="buttonText">Preview the Team Legend</span>
+                    <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+                
+                <div id="statusMessage" class="mt-4 p-3 rounded-lg text-center hidden"></div>
+
+                <!-- Preview Area -->
+                <div id="previewArea" class="mt-6 p-4 bg-white rounded-lg shadow hidden">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Story Preview:</h3>
+                    
+                    <div class="flex flex-col gap-2">
+                        <div>
+                            <p id="previewTitle" class="text-lg font-semibold text-indigo-600"></p>
+                            <p id="previewStory" class="text-gray-700 mt-1 mb-4 whitespace-pre-wrap"></p>
+                        </div>
+                        <img id="previewImage" class="w-full h-auto max-h-64 rounded-lg border border-gray-200 hidden" alt="AI Generated Illustration" onclick="openImageModal(this.src)">
+                    </div>
+
+                    <button id="postBtn" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200 shadow-md flex items-center justify-center mt-4" onclick="postToScroll()">
+                        <span id="postButtonText">Generate Art & Post to Legacy Scroll</span>
+                        <svg id="postSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </div>
+
+            </section>
+
+            <!-- 2. Legacy Scroll Feed -->
+            <section>
+                <h2 class="text-2xl font-semibold mb-6 text-gray-700">The Legacy Scroll (Team Triumphs)</h2>
+                <div id="liveFeed" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                    <!-- Stories will be loaded here -->
+                    <p class="text-gray-500 text-center py-8" id="loadingFeed">Consulting the ancient scrolls...</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Full Screen Image Modal -->
+    <div id="imageModal" class="hidden" onclick="closeImageModal()">
+        <span id="modalClose">&times;</span>
+        <img id="modalImage" src="" alt="Full size AI Generated Art">
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+      const firebaseConfig = {
+  apiKey: "AIzaSyBCwnfiRKRWD5sZuux2VCLCN8SPghdoPfg",
+  authDomain: "team-legacy-story-weaver.firebaseapp.com",
+  projectId: "team-legacy-story-weaver",
+  storageBucket: "team-legacy-story-weaver.firebasestorage.app",
+  messagingSenderId: "818958825752",
+  appId: "1:818958825752:web:266bd35bbe3314d881466d",
+  measurementId: "G-71RBYQ5DLP"
+};
+// Define the missing variables using your correct config
+const appId = firebaseConfig.projectId;
+const initialAuthToken = null; // Use null since we rely on anonymous auth on GitHub Pages
+
+let db;
+let auth;
+let userId = 'anonymous';
+let tempStoryData = null; // Global variable to hold the story, project, and image data during preview
+
+// 1. Initialization and Authentication (FIXED)
+async function initializeFirebase() {
+    // No more checking if config exists, we know it does now.
+    
+    setLogLevel('debug');
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    
+    try {
+        await signInAnonymously(auth);
+    } catch (error) {
+        console.error("Firebase Auth Error:", error);
+        // If anonymous sign-in fails, we still proceed
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            userId = user.uid;
+            console.log("Authenticated with User ID:", userId);
+        } else {
+            console.log("No user is signed in.");
+            // Fallback to a random ID if sign-in failed
+            userId = crypto.randomUUID();
+        }
+        setupLiveFeed(); // Always runs once auth state is known
+    });
+}
+
+        // 2. Firestore Setup for Live Feed (Public Data)
+        function setupLiveFeed() {
+            const feedElement = document.getElementById('liveFeed');
+            const loadingElement = document.getElementById('loadingFeed');
+            
+            const collectionPath = `/artifacts/$"1:818958825752:web:266bd35bbe3314d881466d"/public/data/team_legacy`;
+            const storiesRef = collection(db, collectionPath);
+            
+            const q = query(storiesRef);
+
+            onSnapshot(q, (snapshot) => {
+                loadingElement.classList.add('hidden');
+                let stories = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data && data.project && data.story && data.senderId) {
+                        stories.push({ ...data, id: doc.id });
+                    }
+                });
+
+                // Sort data client-side by timestamp
+                stories.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
+                renderStories(stories.slice(0, 10)); // Display the 10 most recent
+
+                if (stories.length === 0) {
+                    feedElement.innerHTML = `<p class="text-gray-500 text-center py-8">No legends archived yet. Be the first to tell your tale!</p>`;
+                }
+            }, (error) => {
+                console.error("Error setting up live feed listener:", error);
+                loadingElement.textContent = "Error loading The Legacy Scroll.";
+            });
+        }
+
+        // 3. Rendering Logic
+        function renderStories(stories) {
+            const feedElement = document.getElementById('liveFeed');
+            feedElement.innerHTML = ''; // Clear existing content
+
+            stories.forEach(story => {
+                const date = story.timestamp ? new Date(story.timestamp.toMillis()).toLocaleDateString() : 'Today';
+                
+                let senderDisplay;
+                if (story.senderId === userId) {
+                    senderDisplay = 'You';
+                } else if (story.senderName) {
+                    senderDisplay = story.senderName;
+                } else {
+                    senderDisplay = `Colleague (${story.senderId.substring(0, 4)})`;
+                }
+                
+                const imageUrl = story.imageData 
+                    ? `data:image/png;base64,${story.imageData}`
+                    : null;
+
+                const imageHtml = imageUrl
+                    ? `<img class="story-image-feed" src="${imageUrl}" alt="AI Art" onclick="openImageModal('${imageUrl}')">`
+                    : `<div class="story-image-feed flex items-center justify-center bg-gray-200 text-gray-500 text-xs text-center">No Art Available</div>`;
+
+                const storyCard = `
+                    <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-200 border-l-4 border-indigo-500">
+                        <h3 class="text-lg font-bold text-gray-800">${story.title || 'Untitled Legend'}</h3>
+                        <p class="text-sm font-semibold text-indigo-600 mt-1">Project: ${story.project}</p>
+                        <p class="text-gray-600 mt-2 whitespace-pre-wrap">${story.story}</p>
+                        ${imageHtml} 
+                        <p class="text-xs text-gray-400 mt-3 text-right">
+                            Archived by: <span class="font-medium text-gray-500">${senderDisplay}</span> | On: ${date}
+                        </p>
+                    </div>
+                `;
+                feedElement.innerHTML += storyCard;
+            });
+        }
+        
+        // --- Image Modal Functions (Made available globally via window) ---
+
+        window.openImageModal = function(imageUrl) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            
+            modalImage.src = imageUrl;
+            // Use both class and style for maximum reliability
+            modal.classList.remove('hidden'); 
+            modal.style.display = 'flex'; // Explicitly set display
+            document.body.style.overflow = 'hidden'; // Prevent scrolling background
+        }
+
+        window.closeImageModal = function() {
+            const modal = document.getElementById('imageModal');
+            // Use both class and style for maximum reliability
+            modal.classList.add('hidden'); 
+            modal.style.display = 'none'; // Explicitly set display to none
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+        
+        // 4. Preview AI Generation (Made available globally via window)
+        window.previewLegacyStory = async function() {
+            const senderName = document.getElementById('senderName').value.trim();
+            const project = document.getElementById('project').value.trim();
+            const details = document.getElementById('details').value.trim();
+            const tone = document.getElementById('toneSelector').value;
+            const previewBtn = document.getElementById('previewBtn');
+            const buttonText = document.getElementById('buttonText');
+            const spinner = document.getElementById('spinner');
+            const statusMessage = document.getElementById('statusMessage');
+            const previewArea = document.getElementById('previewArea');
+            const previewImage = document.getElementById('previewImage');
+            
+            // Reset preview area
+            previewArea.classList.add('hidden');
+            statusMessage.classList.add('hidden');
+            previewImage.classList.add('hidden');
+            previewImage.src = '';
+            tempStoryData = null; 
+
+            if (!senderName || !project || !details) {
+                statusMessage.className = 'mt-4 p-3 rounded-lg text-sm text-red-700 bg-red-100 block';
+                statusMessage.textContent = 'Please fill out Your Name, Project Name, and the details of the challenge.';
+                return;
+            }
+
+            // UI Feedback: Disable button and show spinner
+            previewBtn.disabled = true;
+            buttonText.textContent = 'Weaving Legend...';
+            spinner.classList.remove('hidden');
+
+            try {
+                // --- 4a. Generate Story Text ---
+                const userPrompt = `Create a short, heroic, and slightly humorous 'Team Legacy Story' based on this input:
+                                    Project/Achievement: ${project}
+                                    Challenge and Resolution: ${details}
+                                    The story should be a maximum of 4-5 sentences and must emphasize collaboration and overcoming adversity.`;
+
+                const systemPrompt = `You are the ancient chronicler of the team. You must turn any workplace success story into a legendary, motivational tale using a ${tone} narrative style. The output must be structured JSON.`;
+
+                const apiKey = "AIzaSyCEcHsxebXDdE1Js99dihj-Pcekt1bYEYs"; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userPrompt }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "title": { "type": "STRING", "description": "A dramatic title for the legend." },
+                                "story": { "type": "STRING", "description": "The main body of the heroic story (4-5 sentences max)." }
+                            },
+                            "propertyOrdering": ["title", "story"]
+                        }
+                    }
+                };
+
+                const response = await fetchWithBackoff(apiUrl, payload);
+                const result = await response.json();
+
+                if (!result.candidates || result.candidates.length === 0) {
+                    throw new Error("API returned no content.");
+                }
+
+                const jsonString = result.candidates[0].content.parts[0].text;
+                const storyData = JSON.parse(jsonString);
+
+                // Store for posting and display preview (ADDED senderName)
+                tempStoryData = { ...storyData, project, details, tone, senderName }; 
+                renderPreview(storyData);
+
+            } catch (error) {
+                console.error("Error generating story:", error);
+                statusMessage.className = 'mt-4 p-3 rounded-lg text-sm text-red-700 bg-red-100 block';
+                statusMessage.textContent = 'An error occurred while weaving the legend. Please check the console and try again.';
+            } finally {
+                // UI Feedback: Re-enable button
+                previewBtn.disabled = false;
+                buttonText.textContent = 'Preview the Team Legend';
+                spinner.classList.add('hidden');
+            }
+        }
+        
+        // Function to render the generated story in the preview area
+        function renderPreview(data) {
+            document.getElementById('previewTitle').textContent = data.title;
+            document.getElementById('previewStory').textContent = data.story;
+            document.getElementById('previewArea').classList.remove('hidden');
+        }
+
+
+        // 5. Generate Art and Post to Scroll (Made available globally via window)
+        window.postToScroll = async function() {
+            const postBtn = document.getElementById('postBtn');
+            const postButtonText = document.getElementById('postButtonText');
+            const postSpinner = document.getElementById('postSpinner');
+            const statusMessage = document.getElementById('statusMessage');
+            const previewArea = document.getElementById('previewArea');
+            const previewImage = document.getElementById('previewImage');
+
+
+            if (!tempStoryData) {
+                statusMessage.className = 'mt-4 p-3 rounded-lg text-sm text-red-700 bg-red-100 block';
+                statusMessage.textContent = 'No story to post. Please generate a preview first.';
+                return;
+            }
+
+            postBtn.disabled = true;
+            postButtonText.textContent = 'Generating Art...';
+            postSpinner.classList.remove('hidden');
+
+            try {
+                // --- 5a. Generate Image ---
+                const imagePrompt = `A stylized illustration in the ${tempStoryData.tone} style depicting a team collaboration and problem-solving for a major project called '${tempStoryData.project}'. Keep the image professional but exciting.`;
+                
+                const apiKey = "AIzaSyCEcHsxebXDdE1Js99dihj-Pcekt1bYEYs";
+                const imageApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+                
+                const imagePayload = { 
+                    instances: [{ prompt: imagePrompt }], 
+                    parameters: { 
+                        "sampleCount": 1,
+                        "aspectRatio": "1:1",
+                        "outputMimeType": "image/png"
+                    } 
+                };
+
+                const imageResponse = await fetchWithBackoff(imageApiUrl, imagePayload);
+                const imageResult = await imageResponse.json();
+
+                let imageData = '';
+                if (imageResult.predictions && imageResult.predictions.length > 0 && imageResult.predictions[0].bytesBase64Encoded) {
+                    imageData = imageResult.predictions[0].bytesBase64Encoded;
+                    
+                    // Update preview image
+                    const base64Url = `data:image/png;base64,${imageData}`;
+                    previewImage.src = base64Url;
+                    previewImage.classList.remove('hidden');
+
+                    // Set modal click handler with the full image data
+                    previewImage.setAttribute('onclick', `openImageModal('${base64Url}')`);
+                } else {
+                    console.error("Image generation failed or returned no data.");
+                    // Show a placeholder image for the preview if art fails, but don't save its data
+                    previewImage.src = "https://placehold.co/600x256/fecaca/991b1b?text=Art+Generation+Failed";
+                    previewImage.classList.remove('hidden');
+                }
+
+                // --- 5b. Save to Firestore ---
+                postButtonText.textContent = 'Posting to Scroll...';
+
+                const collectionPath = `/artifacts/${appId}/public/data/team_legacy`;
+                
+                await addDoc(collection(db, collectionPath), {
+                    project: tempStoryData.project,
+                    details: tempStoryData.details,
+                    title: tempStoryData.title,
+                    story: tempStoryData.story,
+                    tone: tempStoryData.tone,
+                    imageData: imageData, // Save the actual base64 data (or empty string)
+                    senderName: tempStoryData.senderName,
+                    senderId: userId,
+                    timestamp: serverTimestamp()
+                });
+
+                // UI Feedback: Success and Reset
+                document.getElementById('senderName').value = '';
+                document.getElementById('project').value = '';
+                document.getElementById('details').value = '';
+                previewArea.classList.add('hidden');
+                tempStoryData = null;
+                statusMessage.className = 'mt-4 p-3 rounded-lg text-sm text-green-700 bg-green-100 block';
+                statusMessage.textContent = `Success! The legend '${tempStoryData.title}' and its art have been archived on The Legacy Scroll.`;
+
+            } catch (error) {
+                console.error("Error saving story or generating art:", error);
+                statusMessage.className = 'mt-4 p-3 rounded-lg text-sm text-red-700 bg-red-100 block';
+                statusMessage.textContent = 'An error occurred during art generation or saving. Check console.';
+            } finally {
+                postBtn.disabled = false;
+                postButtonText.textContent = 'Generate Art & Post to Legacy Scroll';
+                postSpinner.classList.add('hidden');
+            }
+        }
+        
+        // Helper function for exponential backoff (used for both text and image generation)
+        async function fetchWithBackoff(url, data, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.status !== 429 && response.ok) {
+                        return response;
+                    }
+                    
+                    if (response.status === 429 && i < maxRetries - 1) {
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+
+                    return response;
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+
+        // Start the application
+        initializeFirebase();
+
+        // FIX: Ensure the modal is explicitly closed on page load to prevent it from covering the screen.
+        // This addresses the spontaneous opening issue seen in the screenshot.
+        window.onload = () => {
+             // Check if the modal exists before trying to close it
+             const modal = document.getElementById('imageModal');
+             if (modal) {
+                 window.closeImageModal();
+             }
+        };
+
+    </script>
+</body>
+</html>
